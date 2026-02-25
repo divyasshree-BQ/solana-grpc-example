@@ -5,13 +5,38 @@ server:
 
 stream:
   type: "dex_trades"
-
-# transactions sample filter
-# filters:
-#   signers:
-#     - "ETcW7iuVraMKLMJayNCCsr9bLvKrJPDczy1CMVMPmXTc"
   
 # dextrades sample filter
 filters:
   programs:
-    - "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P" 
+      - "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4"
+      - "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA"
+      - "SV2EYYJyRz2YhfXwXnhNAevDEui5Q6yrfyo13WtupPF"
+      - "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc"
+      - "ALPHAQmeA7bjrVuccPsYPiCvsi428SNwte66Srvs4pHA"
+      - "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo"
+      - "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK"
+      - "HpNfyc2Saw7RKkQd8nEL4khUcuPhQ7WwY1B2qjx8jxFq"
+      - "MNFSTqtC93rEfYHB6hF82sKdZpUDFWkViLByLd1k1Ms"
+      - "cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG"
+      - "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8"
+      - "proVF4pMXVaYqmy4NjniPh4pqKNfMmsihgd4wdkCX3u"
+      - "SoLFiHG9TfgtdUXUjWAxi3LtvYuFyDLVhBWxdMZxyCe"
+      - "PhoeNiXZ8ByJGLkxNfZRnkUfjvmuYqLR89jjFHGqdXY"
+      - "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P"
+      - "CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C"
+      - "obriQD1zbpyLz95G5n7nJe6a4DPjpFwa5XYPoNm113y"
+      - "Eo7WjKq67rjJQSZxS6z3YkapzY3eMj6Xy8X5EQVn5UaB"
+      - "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN"
+      - "LanMV9sAd7wArD4vJFi2qDdfnVhFxYSUg6eADduJ3uj"
+      - "6m2CDdhRgxpH4WjvdzxAYbGxwdGUz5MziiL5jek2kBma"
+      - "BSwp6bEBihVLdqJRKGgzjcGLHkcTuzmSo1TQkHepzH8p"
+      - "M2mx93ekt1fmXSVkTrUL9xVFHkmME8HTUi5Cyc5aF7K"
+      - "opnb2LAfJYbRMAHHvqjCwQxanZn7ReEHp1k81EohpZb"
+      - "mmm3XBJg5gk8XJxEKBvdgptZz6SgK4tXvn36sodowMc"
+      - "HEAVENoP2qxoeuF8Dj2oT1GHEnu49U5mJYkdeC8BAX2o"
+      - "AMM55ShdkoGRB5jVYPjWziwk8m5MpwyDgsMWHaMSQWH6"
+      - "MoonCVVNZFSYkqNXP6bxHLPL6QQJiMagDL3qcqUQTrG"
+      - "boop8hVGQGqehUK2iVEMEnMrL5RbjywRzHKBmBE7ry4"
+      - "DumpFunGAgW6kPHzWMA3Nnqecyrd6SGnLZvNGp2aHwEa"
+  
