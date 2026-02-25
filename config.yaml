@@ -1,0 +1,17 @@
+server:
+  address: "corecast.bitquery.io"
+  authorization: "ory_at_"
+  insecure: false
+
+stream:
+  type: "dex_trades"
+
+# transactions sample filter
+# filters:
+#   signers:
+#     - "ETcW7iuVraMKLMJayNCCsr9bLvKrJPDczy1CMVMPmXTc"
+  
+# dextrades sample filter
+filters:
+  programs:
+    - "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P" 
