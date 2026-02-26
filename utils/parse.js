@@ -235,7 +235,7 @@ const DEX_TRADE_COL_SEP = ' | ';
  * @param {string} receivedTimestamp - ISO timestamp
  * @param {function} toBase58 - (bytes) => base58 string
  * @param {string[]} [filterTokens] - token mint addresses from config filters
- * @returns {{ timestamp: string, side: string, buyer: string, seller: string, amount: string, protocol: string } | null}
+ * @returns {{ timestamp: string, side: string, buyer: string, seller: string, amount: string, protocol: string, txLink: string } | null}
  */
 function formatDexTradeTableRow(message, receivedTimestamp, toBase58, filterTokens = []) {
   const trade = message?.Trade;
@@ -243,6 +243,10 @@ function formatDexTradeTableRow(message, receivedTimestamp, toBase58, filterToke
   const makeAddr = (buf) => (buf && toBase58(Buffer.isBuffer(buf) ? buf : Buffer.from(buf))) || '';
   const buyer = makeAddr(trade.Buy.Account.Address);
   const seller = makeAddr(trade.Sell.Account.Address);
+
+  const sigBuf = message?.Transaction?.Signature;
+  const signature = sigBuf ? makeAddr(sigBuf) : '';
+  const txLink = signature ? `https://solscan.io/tx/${signature}` : '';
 
   const buyMint  = makeAddr(trade.Buy?.Currency?.MintAddress);
   const sellMint = makeAddr(trade.Sell?.Currency?.MintAddress);
@@ -269,7 +273,8 @@ function formatDexTradeTableRow(message, receivedTimestamp, toBase58, filterToke
     buyer,
     seller,
     amount,
-    protocol
+    protocol,
+    txLink
   };
 }
 
@@ -283,14 +288,16 @@ function padCol(s, minWidth) {
 
 /**
  * Format a dex trade row as a single table line. Fixed-width columns for alignment.
- * @param {{ timestamp: string, side: string, buyer: string, seller: string, amount: string, protocol: string }} row
+ * Prepends Solscan tx link at the front when present.
+ * @param {{ timestamp: string, side: string, buyer: string, seller: string, amount: string, protocol: string, txLink?: string }} row
  * @param {object} [colWidths]
  * @returns {string}
  */
 function formatDexTradeTableRowLine(row, colWidths = DEX_TRADE_COL_WIDTHS) {
   const w = colWidths;
   const sep = DEX_TRADE_COL_SEP;
-  return padCol(row.timestamp, w.timestamp) + sep + padCol(row.side, w.side) + sep + padCol(row.buyer, w.buyer) + sep + padCol(row.seller, w.seller) + sep + padCol(row.amount, w.amount) + sep + padCol(row.protocol || '', w.protocol);
+  const rest = padCol(row.timestamp, w.timestamp) + sep + padCol(row.side, w.side) + sep + padCol(row.buyer, w.buyer) + sep + padCol(row.seller, w.seller) + sep + padCol(row.amount, w.amount) + sep + padCol(row.protocol || '', w.protocol);
+  return (row.txLink ? row.txLink + sep : '') + rest;
 }
 
 module.exports = {
