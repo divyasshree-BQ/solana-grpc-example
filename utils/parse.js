@@ -1,8 +1,3 @@
-/**
- * Generic protobuf parser: conversion funs, decimal fn, main nested parser.
- * If a field is an amount-like type and we have decimals in context, show decimal value.
- */
-
 const bs58 = require('bs58');
 
 const DEFAULT_DECIMALS = 9;
@@ -229,15 +224,101 @@ function formatStreamMessage(message, receivedTimestamp, toBase58, opts = {}) {
   return lines;
 }
 
+/** Min column widths; full addresses shown. Separator between columns prevents mashing. */
+const DEX_TRADE_COL_WIDTHS = { timestamp: 28, side: 6, buyer: 44, seller: 44, amount: 24, protocol: 20 };
+const DEX_TRADE_COL_SEP = ' | ';
+
+/**
+ * Return true if the trade involves the given token (mint). Used for client-side filtering.
+ * If filterTokenAddress is empty/whitespace, returns true (show all).
+ * @param {object} message - DexTradeStreamMessage with Trade (DexTradeEvent)
+ * @param {function} toBase58 - (bytes) => base58 string
+ * @param {string} filterTokenAddress - base58 mint address to filter by, or empty for no filter
+ * @returns {boolean}
+ */
+function dexTradeMatchesTokenFilter(message, toBase58, filterTokenAddress) {
+  const filter = typeof filterTokenAddress === 'string' ? filterTokenAddress.trim() : '';
+  if (!filter) return true;
+  const trade = message?.Trade;
+  if (!trade) return false;
+  const makeAddr = (buf) => (buf && toBase58(Buffer.isBuffer(buf) ? buf : Buffer.from(buf))) || '';
+  const buyMint = makeAddr(trade.Buy?.Currency?.MintAddress);
+  const sellMint = makeAddr(trade.Sell?.Currency?.MintAddress);
+  return buyMint === filter || sellMint === filter;
+}
+/**
+ * Format a single DEX trade as a table row object (timestamp, side, buyer, seller, amount, protocol).
+ * @param {object} message - DexTradeStreamMessage with Trade (DexTradeEvent)
+ * @param {string} receivedTimestamp - ISO timestamp
+ * @param {function} toBase58 - (bytes) => base58 string
+ * @returns {{ timestamp: string, side: string, buyer: string, seller: string, amount: string, protocol: string } | null}
+ */
+function formatDexTradeTableRow(message, receivedTimestamp, toBase58) {
+  const trade = message?.Trade;
+  if (!trade?.Buy?.Account?.Address || !trade?.Sell?.Account?.Address) return null;
+  const makeAddr = (buf) => (buf && toBase58(Buffer.isBuffer(buf) ? buf : Buffer.from(buf))) || '';
+  const buyer = makeAddr(trade.Buy.Account.Address);
+  const seller = makeAddr(trade.Sell.Account.Address);
+  const decimals = getDecimals(trade.Buy?.Currency);
+  const rawAmount = trade.Buy?.Amount;
+  const amount = rawAmount != null ? toDecimalAmount(rawAmount, decimals) : '0';
+  const protocol = (trade.Dex && trade.Dex.ProtocolName != null) ? String(trade.Dex.ProtocolName) : '';
+  return {
+    timestamp: receivedTimestamp || '',
+    side: 'BUY',
+    buyer,
+    seller,
+    amount,
+    protocol
+  };
+}
+
+
+/**
+ * Min-width column: pad to minWidth, never truncate (full addresses). Separator used between columns.
+ */
+function padCol(s, minWidth) {
+  return String(s).padEnd(minWidth);
+}
+
+/**
+ * Return table header line for dex trades.
+ * @param {object} [colWidths] 
+ * @returns {string}
+ */
+function getDexTradeTableHeader(colWidths = DEX_TRADE_COL_WIDTHS) {
+  const w = colWidths;
+  const sep = DEX_TRADE_COL_SEP;
+  return padCol('Timestamp', w.timestamp) + sep + padCol('Side', w.side) + sep + padCol('Buyer', w.buyer) + sep + padCol('Seller', w.seller) + sep + padCol('Amount', w.amount) + sep + padCol('Protocol', w.protocol);
+}
+
+/**
+ * Format a dex trade row as a single table line. Fixed-width columns for alignment.
+ * @param {{ timestamp: string, side: string, buyer: string, seller: string, amount: string, protocol: string }} row
+ * @param {object} [colWidths]
+ * @returns {string}
+ */
+function formatDexTradeTableRowLine(row, colWidths = DEX_TRADE_COL_WIDTHS) {
+  const w = colWidths;
+  const sep = DEX_TRADE_COL_SEP;
+  return padCol(row.timestamp, w.timestamp) + sep + padCol(row.side, w.side) + sep + padCol(row.buyer, w.buyer) + sep + padCol(row.seller, w.seller) + sep + padCol(row.amount, w.amount) + sep + padCol(row.protocol || '', w.protocol);
+}
+
+/**
+ * Return a separator line for the dex trade table (same length as header).
+ * @param {object} [colWidths]
+ * @returns {string}
+ */
+function getDexTradeTableSeparator(colWidths = DEX_TRADE_COL_WIDTHS) {
+  const headerLen = getDexTradeTableHeader(colWidths).length;
+  return '-'.repeat(headerLen);
+}
+
 module.exports = {
-  convertBytes,
-  makeConvertBytes,
-  toDecimalAmount,
-  getDecimals,
-  getDecimalsForField,
-  AMOUNT_FIELD_NAMES,
-  formatFieldWithDecimals,
-  parseMessage,
   formatStreamMessage,
-  DEFAULT_DECIMALS
+  formatDexTradeTableRow,
+  getDexTradeTableHeader,
+  formatDexTradeTableRowLine,
+  getDexTradeTableSeparator,
+  dexTradeMatchesTokenFilter,
 };

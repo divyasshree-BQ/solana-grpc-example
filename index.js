@@ -9,9 +9,6 @@ const grpcParse = require('./utils/grpcParse');
 const base58Cache = new Map();
 const MAX_CACHE_SIZE = 10000;
 
-// Stats object passed to utils for message counting and stats output
-const stats = {};
-
 // Load configuration
 const config = yaml.load(fs.readFileSync('./config.yaml', 'utf8'));
 
@@ -130,8 +127,7 @@ function createRequest() {
 // Stream listener function
 function listenToStream() {
   grpcParse.logStartup(config);
-  grpcParse.startStatsInterval(stats, () => base58Cache.size);
-  
+
   const request = createRequest();
   
   // Create stream based on type
@@ -161,7 +157,7 @@ function listenToStream() {
   
   // Handle stream events: utils parse and print
   stream.on('data', (message) => {
-    grpcParse.logMessage(message, toBase58, stats);
+    grpcParse.logMessage(message, toBase58, config);
   });
   
   stream.on('error', (error) => {

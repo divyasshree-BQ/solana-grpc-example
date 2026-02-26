@@ -8,6 +8,8 @@ stream:
   
 # dextrades sample filter
 filters:
+  # Token address filter: only trades for this mint are shown (optional). Set to base58 mint address or leave empty.
+  token_address: "D6mCHbMUdVwsbx4uB2jGrseHE93Pe7jpBr2yKorywLzC"
   programs:
       - "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4"
       - "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA"
@@ -39,4 +41,3 @@ filters:
       - "MoonCVVNZFSYkqNXP6bxHLPL6QQJiMagDL3qcqUQTrG"
       - "boop8hVGQGqehUK2iVEMEnMrL5RbjywRzHKBmBE7ry4"
       - "DumpFunGAgW6kPHzWMA3Nnqecyrd6SGnLZvNGp2aHwEa"
-  
