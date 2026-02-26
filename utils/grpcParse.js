@@ -4,24 +4,13 @@
 
 const parse = require('./parse');
 
-let dexTradeTableHeaderPrinted = false;
-
 function logMessage(message, toBase58, config) {
   const receivedTimestamp = new Date().toISOString();
   const isDexTrades = config?.stream?.type === 'dex_trades';
   const hasTrade = message.Trade != null;
   if (isDexTrades && hasTrade) {
-    const tokenFilter = config?.filters?.token_address;
-    if (!parse.dexTradeMatchesTokenFilter(message, toBase58, tokenFilter)) return;
-    const row = parse.formatDexTradeTableRow(message, receivedTimestamp, toBase58, tokenFilter);
-    if (row) {
-      if (!dexTradeTableHeaderPrinted) {
-        console.log(parse.getDexTradeTableHeader());
-        console.log(parse.getDexTradeTableSeparator());
-        dexTradeTableHeaderPrinted = true;
-      }
-      console.log(parse.formatDexTradeTableRowLine(row));
-    }
+    const row = parse.formatDexTradeTableRow(message, receivedTimestamp, toBase58);
+    if (row) console.log(parse.formatDexTradeTableRowLine(row));
     return;
   }
   const lines = parse.formatStreamMessage(message, receivedTimestamp, toBase58);
@@ -58,11 +47,8 @@ function logStartupError(error) {
   console.error('Failed to start stream:', error);
 }
 
-function flushLogs() {}
-
 module.exports = {
   logMessage,
-  flushLogs,
   logStartup,
   logStreamError,
   logStreamEnd,

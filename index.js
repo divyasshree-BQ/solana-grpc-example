@@ -129,14 +129,13 @@ function listenToStream() {
   grpcParse.logStartup(config);
 
   const request = createRequest();
-  
+
   const stream = client.DexTrades(request, metadata);
-  
-  // Handle stream events: utils parse and print
+
   stream.on('data', (message) => {
     grpcParse.logMessage(message, toBase58, config);
   });
-  
+
   stream.on('error', (error) => {
     grpcParse.logStreamError(error, request);
   });

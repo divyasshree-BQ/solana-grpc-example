@@ -225,61 +225,30 @@ function formatStreamMessage(message, receivedTimestamp, toBase58, opts = {}) {
 }
 
 /** Min column widths; full addresses shown. Separator between columns prevents mashing. */
-const DEX_TRADE_COL_WIDTHS = { timestamp: 28, side: 6, buyer: 44, seller: 44, amount: 24, protocol: 20 };
+const DEX_TRADE_COL_WIDTHS = { timestamp: 28, side: 6, buyer: 44, seller: 44, token: 44, amount: 24, protocol: 20 };
 const DEX_TRADE_COL_SEP = ' | ';
 
 /**
- * Return true if the trade involves the given token (mint). Used for client-side filtering.
- * If filterTokenAddress is empty/whitespace, returns true (show all).
- * @param {object} message - DexTradeStreamMessage with Trade (DexTradeEvent)
- * @param {function} toBase58 - (bytes) => base58 string
- * @param {string} filterTokenAddress - base58 mint address to filter by, or empty for no filter
- * @returns {boolean}
- */
-function dexTradeMatchesTokenFilter(message, toBase58, filterTokenAddress) {
-  const filter = typeof filterTokenAddress === 'string' ? filterTokenAddress.trim() : '';
-  if (!filter) return true;
-  const trade = message?.Trade;
-  if (!trade) return false;
-  const makeAddr = (buf) => (buf && toBase58(Buffer.isBuffer(buf) ? buf : Buffer.from(buf))) || '';
-  const buyMint = makeAddr(trade.Buy?.Currency?.MintAddress);
-  const sellMint = makeAddr(trade.Sell?.Currency?.MintAddress);
-  return buyMint === filter || sellMint === filter;
-}
-/**
- * Format a single DEX trade as a table row object (timestamp, side, buyer, seller, amount, protocol).
- * When filterTokenAddress is set, side and amount are from that token's perspective: BUY = token was bought, SELL = token was sold (e.g. WSOL as quote).
+ * Format a single DEX trade as a table row object (timestamp, side, buyer, seller, token, amount, protocol).
+ * Uses buy side for side, amount, and token.
  * @param {object} message - DexTradeStreamMessage with Trade (DexTradeEvent)
  * @param {string} receivedTimestamp - ISO timestamp
  * @param {function} toBase58 - (bytes) => base58 string
- * @param {string} [filterTokenAddress] - optional base58 mint to show side/amount for (e.g. WSOL); if empty, defaults to BUY side
- * @returns {{ timestamp: string, side: string, buyer: string, seller: string, amount: string, protocol: string } | null}
+ * @returns {{ timestamp: string, side: string, buyer: string, seller: string, token: string, amount: string, protocol: string } | null}
  */
-function formatDexTradeTableRow(message, receivedTimestamp, toBase58, filterTokenAddress) {
+function formatDexTradeTableRow(message, receivedTimestamp, toBase58) {
   const trade = message?.Trade;
   if (!trade?.Buy?.Account?.Address || !trade?.Sell?.Account?.Address) return null;
   const makeAddr = (buf) => (buf && toBase58(Buffer.isBuffer(buf) ? buf : Buffer.from(buf))) || '';
   const buyer = makeAddr(trade.Buy.Account.Address);
   const seller = makeAddr(trade.Sell.Account.Address);
   const buyMint = makeAddr(trade.Buy?.Currency?.MintAddress);
-  const sellMint = makeAddr(trade.Sell?.Currency?.MintAddress);
-  const filter = typeof filterTokenAddress === 'string' ? filterTokenAddress.trim() : '';
 
-  const isFilterSell = filter && sellMint === filter;
-
-  let side;
-  let amount;
-  if (isFilterSell) {
-    side = 'SELL';
-    const decimals = getDecimals(trade.Sell?.Currency);
-    const rawAmount = trade.Sell?.Amount;
-    amount = rawAmount != null ? toDecimalAmount(rawAmount, decimals) : '0';
-  } else {
-    side = 'BUY';
-    const decimals = getDecimals(trade.Buy?.Currency);
-    const rawAmount = trade.Buy?.Amount;
-    amount = rawAmount != null ? toDecimalAmount(rawAmount, decimals) : '0';
-  }
+  const side = 'BUY';
+  const decimals = getDecimals(trade.Buy?.Currency);
+  const rawAmount = trade.Buy?.Amount;
+  const amount = rawAmount != null ? toDecimalAmount(rawAmount, decimals) : '0';
+  const token = buyMint;
 
   const protocol = (trade.Dex && trade.Dex.ProtocolName != null) ? String(trade.Dex.ProtocolName) : '';
   return {
@@ -287,6 +256,7 @@ function formatDexTradeTableRow(message, receivedTimestamp, toBase58, filterToke
     side,
     buyer,
     seller,
+    token,
     amount,
     protocol
   };
@@ -301,43 +271,19 @@ function padCol(s, minWidth) {
 }
 
 /**
- * Return table header line for dex trades.
- * @param {object} [colWidths] 
- * @returns {string}
- */
-function getDexTradeTableHeader(colWidths = DEX_TRADE_COL_WIDTHS) {
-  const w = colWidths;
-  const sep = DEX_TRADE_COL_SEP;
-  return padCol('Timestamp', w.timestamp) + sep + padCol('Side', w.side) + sep + padCol('Buyer', w.buyer) + sep + padCol('Seller', w.seller) + sep + padCol('Amount', w.amount) + sep + padCol('Protocol', w.protocol);
-}
-
-/**
  * Format a dex trade row as a single table line. Fixed-width columns for alignment.
- * @param {{ timestamp: string, side: string, buyer: string, seller: string, amount: string, protocol: string }} row
+ * @param {{ timestamp: string, side: string, buyer: string, seller: string, token: string, amount: string, protocol: string }} row
  * @param {object} [colWidths]
  * @returns {string}
  */
 function formatDexTradeTableRowLine(row, colWidths = DEX_TRADE_COL_WIDTHS) {
   const w = colWidths;
   const sep = DEX_TRADE_COL_SEP;
-  return padCol(row.timestamp, w.timestamp) + sep + padCol(row.side, w.side) + sep + padCol(row.buyer, w.buyer) + sep + padCol(row.seller, w.seller) + sep + padCol(row.amount, w.amount) + sep + padCol(row.protocol || '', w.protocol);
-}
-
-/**
- * Return a separator line for the dex trade table (same length as header).
- * @param {object} [colWidths]
- * @returns {string}
- */
-function getDexTradeTableSeparator(colWidths = DEX_TRADE_COL_WIDTHS) {
-  const headerLen = getDexTradeTableHeader(colWidths).length;
-  return '-'.repeat(headerLen);
+  return padCol(row.timestamp, w.timestamp) + sep + padCol(row.side, w.side) + sep + padCol(row.buyer, w.buyer) + sep + padCol(row.seller, w.seller) + sep + padCol(row.token || '', w.token) + sep + padCol(row.amount, w.amount) + sep + padCol(row.protocol || '', w.protocol);
 }
 
 module.exports = {
   formatStreamMessage,
   formatDexTradeTableRow,
-  getDexTradeTableHeader,
   formatDexTradeTableRowLine,
-  getDexTradeTableSeparator,
-  dexTradeMatchesTokenFilter,
 };
