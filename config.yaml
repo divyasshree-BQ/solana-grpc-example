@@ -5,10 +5,12 @@ server:
 
 stream:
   type: "dex_trades"
-  
+
 # dextrades sample filter
 filters:
-  programs:
-      - "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4"
-      - "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA"
-      - "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P"
+  tokens:
+    - "BhFhSiozXfoRCxq2DsCH55QaJ4kyY4ia3epfSPFEpump"
+  # programs:
+  #     - "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4"
+  #     - "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA"
+  #     - "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P"

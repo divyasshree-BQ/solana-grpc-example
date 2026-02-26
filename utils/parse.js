@@ -225,38 +225,49 @@ function formatStreamMessage(message, receivedTimestamp, toBase58, opts = {}) {
 }
 
 /** Min column widths; full addresses shown. Separator between columns prevents mashing. */
-const DEX_TRADE_COL_WIDTHS = { timestamp: 28, side: 6, buyer: 44, seller: 44, token: 44, amount: 24, protocol: 20 };
+const DEX_TRADE_COL_WIDTHS = { timestamp: 28, side: 6, buyer: 44, seller: 44, amount: 24, protocol: 20 };
 const DEX_TRADE_COL_SEP = ' | ';
 
 /**
- * Format a single DEX trade as a table row object (timestamp, side, buyer, seller, token, amount, protocol).
- * Uses buy side for side, amount, and token.
+ * Format a single DEX trade as a table row object (timestamp, side, buyer, seller, amount, protocol).
+ * Determines BUY/SELL based on which side holds the filtered token.
  * @param {object} message - DexTradeStreamMessage with Trade (DexTradeEvent)
  * @param {string} receivedTimestamp - ISO timestamp
  * @param {function} toBase58 - (bytes) => base58 string
- * @returns {{ timestamp: string, side: string, buyer: string, seller: string, token: string, amount: string, protocol: string } | null}
+ * @param {string[]} [filterTokens] - token mint addresses from config filters
+ * @returns {{ timestamp: string, side: string, buyer: string, seller: string, amount: string, protocol: string } | null}
  */
-function formatDexTradeTableRow(message, receivedTimestamp, toBase58) {
+function formatDexTradeTableRow(message, receivedTimestamp, toBase58, filterTokens = []) {
   const trade = message?.Trade;
   if (!trade?.Buy?.Account?.Address || !trade?.Sell?.Account?.Address) return null;
   const makeAddr = (buf) => (buf && toBase58(Buffer.isBuffer(buf) ? buf : Buffer.from(buf))) || '';
   const buyer = makeAddr(trade.Buy.Account.Address);
   const seller = makeAddr(trade.Sell.Account.Address);
-  const buyMint = makeAddr(trade.Buy?.Currency?.MintAddress);
 
-  const side = 'BUY';
-  const decimals = getDecimals(trade.Buy?.Currency);
-  const rawAmount = trade.Buy?.Amount;
-  const amount = rawAmount != null ? toDecimalAmount(rawAmount, decimals) : '0';
-  const token = buyMint;
+  const buyMint  = makeAddr(trade.Buy?.Currency?.MintAddress);
+  const sellMint = makeAddr(trade.Sell?.Currency?.MintAddress);
 
+  // Determine side: if the filtered token appears on the Sell side, the user's token is being sold
+  let side, decimals, rawAmount;
+  const tokenSet = new Set(filterTokens);
+  if (tokenSet.size > 0 && tokenSet.has(sellMint)) {
+    side      = 'SELL';
+    decimals  = getDecimals(trade.Sell?.Currency);
+    rawAmount = trade.Sell?.Amount;
+  } else {
+    // Buy side match, or no filter — default to BUY
+    side      = 'BUY';
+    decimals  = getDecimals(trade.Buy?.Currency);
+    rawAmount = trade.Buy?.Amount;
+  }
+
+  const amount   = rawAmount != null ? toDecimalAmount(rawAmount, decimals) : '0';
   const protocol = (trade.Dex && trade.Dex.ProtocolName != null) ? String(trade.Dex.ProtocolName) : '';
   return {
     timestamp: receivedTimestamp || '',
     side,
     buyer,
     seller,
-    token,
     amount,
     protocol
   };
@@ -272,14 +283,14 @@ function padCol(s, minWidth) {
 
 /**
  * Format a dex trade row as a single table line. Fixed-width columns for alignment.
- * @param {{ timestamp: string, side: string, buyer: string, seller: string, token: string, amount: string, protocol: string }} row
+ * @param {{ timestamp: string, side: string, buyer: string, seller: string, amount: string, protocol: string }} row
  * @param {object} [colWidths]
  * @returns {string}
  */
 function formatDexTradeTableRowLine(row, colWidths = DEX_TRADE_COL_WIDTHS) {
   const w = colWidths;
   const sep = DEX_TRADE_COL_SEP;
-  return padCol(row.timestamp, w.timestamp) + sep + padCol(row.side, w.side) + sep + padCol(row.buyer, w.buyer) + sep + padCol(row.seller, w.seller) + sep + padCol(row.token || '', w.token) + sep + padCol(row.amount, w.amount) + sep + padCol(row.protocol || '', w.protocol);
+  return padCol(row.timestamp, w.timestamp) + sep + padCol(row.side, w.side) + sep + padCol(row.buyer, w.buyer) + sep + padCol(row.seller, w.seller) + sep + padCol(row.amount, w.amount) + sep + padCol(row.protocol || '', w.protocol);
 }
 
 module.exports = {

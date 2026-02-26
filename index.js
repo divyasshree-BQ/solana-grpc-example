@@ -120,9 +120,25 @@ function createRequest() {
       addresses: config.filters.signers
     };
   }
-  
+
+  if (config.filters.tokens && config.filters.tokens.length > 0) {
+    request.token = {
+      addresses: config.filters.tokens
+    };
+  }
+
   return request;
 }
+
+// Map config stream type names to gRPC client methods
+const STREAM_METHOD_MAP = {
+  'dex_trades':    'DexTrades',
+  'dex_orders':    'DexOrders',
+  'dex_pools':     'DexPools',
+  'transactions':  'Transactions',
+  'transfers':     'Transfers',
+  'balances':      'Balances',
+};
 
 // Stream listener function
 function listenToStream() {
@@ -130,7 +146,13 @@ function listenToStream() {
 
   const request = createRequest();
 
-  const stream = client.DexTrades(request, metadata);
+  const streamType = config.stream && config.stream.type;
+  const methodName = STREAM_METHOD_MAP[streamType];
+  if (!methodName) {
+    throw new Error(`Unknown stream type "${streamType}". Valid types: ${Object.keys(STREAM_METHOD_MAP).join(', ')}`);
+  }
+
+  const stream = client[methodName](request, metadata);
 
   stream.on('data', (message) => {
     grpcParse.logMessage(message, toBase58, config);

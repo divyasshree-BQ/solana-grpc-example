@@ -9,7 +9,8 @@ function logMessage(message, toBase58, config) {
   const isDexTrades = config?.stream?.type === 'dex_trades';
   const hasTrade = message.Trade != null;
   if (isDexTrades && hasTrade) {
-    const row = parse.formatDexTradeTableRow(message, receivedTimestamp, toBase58);
+    const filterTokens = config?.filters?.tokens || [];
+    const row = parse.formatDexTradeTableRow(message, receivedTimestamp, toBase58, filterTokens);
     if (row) console.log(parse.formatDexTradeTableRowLine(row));
     return;
   }
