@@ -248,24 +248,43 @@ function dexTradeMatchesTokenFilter(message, toBase58, filterTokenAddress) {
 }
 /**
  * Format a single DEX trade as a table row object (timestamp, side, buyer, seller, amount, protocol).
+ * When filterTokenAddress is set, side and amount are from that token's perspective: BUY = token was bought, SELL = token was sold (e.g. WSOL as quote).
  * @param {object} message - DexTradeStreamMessage with Trade (DexTradeEvent)
  * @param {string} receivedTimestamp - ISO timestamp
  * @param {function} toBase58 - (bytes) => base58 string
+ * @param {string} [filterTokenAddress] - optional base58 mint to show side/amount for (e.g. WSOL); if empty, defaults to BUY side
  * @returns {{ timestamp: string, side: string, buyer: string, seller: string, amount: string, protocol: string } | null}
  */
-function formatDexTradeTableRow(message, receivedTimestamp, toBase58) {
+function formatDexTradeTableRow(message, receivedTimestamp, toBase58, filterTokenAddress) {
   const trade = message?.Trade;
   if (!trade?.Buy?.Account?.Address || !trade?.Sell?.Account?.Address) return null;
   const makeAddr = (buf) => (buf && toBase58(Buffer.isBuffer(buf) ? buf : Buffer.from(buf))) || '';
   const buyer = makeAddr(trade.Buy.Account.Address);
   const seller = makeAddr(trade.Sell.Account.Address);
-  const decimals = getDecimals(trade.Buy?.Currency);
-  const rawAmount = trade.Buy?.Amount;
-  const amount = rawAmount != null ? toDecimalAmount(rawAmount, decimals) : '0';
+  const buyMint = makeAddr(trade.Buy?.Currency?.MintAddress);
+  const sellMint = makeAddr(trade.Sell?.Currency?.MintAddress);
+  const filter = typeof filterTokenAddress === 'string' ? filterTokenAddress.trim() : '';
+
+  const isFilterSell = filter && sellMint === filter;
+
+  let side;
+  let amount;
+  if (isFilterSell) {
+    side = 'SELL';
+    const decimals = getDecimals(trade.Sell?.Currency);
+    const rawAmount = trade.Sell?.Amount;
+    amount = rawAmount != null ? toDecimalAmount(rawAmount, decimals) : '0';
+  } else {
+    side = 'BUY';
+    const decimals = getDecimals(trade.Buy?.Currency);
+    const rawAmount = trade.Buy?.Amount;
+    amount = rawAmount != null ? toDecimalAmount(rawAmount, decimals) : '0';
+  }
+
   const protocol = (trade.Dex && trade.Dex.ProtocolName != null) ? String(trade.Dex.ProtocolName) : '';
   return {
     timestamp: receivedTimestamp || '',
-    side: 'BUY',
+    side,
     buyer,
     seller,
     amount,

@@ -13,7 +13,7 @@ function logMessage(message, toBase58, config) {
   if (isDexTrades && hasTrade) {
     const tokenFilter = config?.filters?.token_address;
     if (!parse.dexTradeMatchesTokenFilter(message, toBase58, tokenFilter)) return;
-    const row = parse.formatDexTradeTableRow(message, receivedTimestamp, toBase58);
+    const row = parse.formatDexTradeTableRow(message, receivedTimestamp, toBase58, tokenFilter);
     if (row) {
       if (!dexTradeTableHeaderPrinted) {
         console.log(parse.getDexTradeTableHeader());
