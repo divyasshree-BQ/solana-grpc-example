@@ -1,41 +1,10 @@
 /**
- * gRPC stream logging: uses parse.js for message formatting, buffered output.
+ * gRPC stream logging: uses parse.js for message formatting.
  */
 
 const parse = require('./parse');
 
-let logBuffer = [];
-let logFlushInterval = null;
-const LOG_FLUSH_INTERVAL_MS = 100;
-const MAX_LOG_BUFFER_SIZE = 1000;
 let dexTradeTableHeaderPrinted = false;
-
-function bufferedLog(message) {
-  logBuffer.push(message);
-  if (logBuffer.length >= MAX_LOG_BUFFER_SIZE) flushLogs();
-  if (!logFlushInterval) {
-    logFlushInterval = setInterval(() => {
-      if (logBuffer.length > 0) {
-        console.log(logBuffer.join('\n'));
-        logBuffer = [];
-      }
-    }, LOG_FLUSH_INTERVAL_MS);
-  }
-}
-
-function flushLogs() {
-  if (logBuffer.length > 0) {
-    console.log(logBuffer.join('\n'));
-    logBuffer = [];
-  }
-}
-
-function stopIntervals() {
-  if (logFlushInterval) {
-    clearInterval(logFlushInterval);
-    logFlushInterval = null;
-  }
-}
 
 function logMessage(message, toBase58, config) {
   const receivedTimestamp = new Date().toISOString();
@@ -47,16 +16,16 @@ function logMessage(message, toBase58, config) {
     const row = parse.formatDexTradeTableRow(message, receivedTimestamp, toBase58);
     if (row) {
       if (!dexTradeTableHeaderPrinted) {
-        bufferedLog(parse.getDexTradeTableHeader());
-        bufferedLog(parse.getDexTradeTableSeparator());
+        console.log(parse.getDexTradeTableHeader());
+        console.log(parse.getDexTradeTableSeparator());
         dexTradeTableHeaderPrinted = true;
       }
-      bufferedLog(parse.formatDexTradeTableRowLine(row));
+      console.log(parse.formatDexTradeTableRowLine(row));
     }
     return;
   }
   const lines = parse.formatStreamMessage(message, receivedTimestamp, toBase58);
-  bufferedLog(lines.join('\n'));
+  console.log(lines.join('\n'));
 }
 
 function logStartup(config) {
@@ -67,7 +36,6 @@ function logStartup(config) {
 }
 
 function logStreamError(error, request) {
-  flushLogs();
   console.error('Stream error:', error);
   console.error('Error details:', error.details);
   console.error('Error code:', error.code);
@@ -75,23 +43,22 @@ function logStreamError(error, request) {
 }
 
 function logStreamEnd() {
-  flushLogs();
   console.log('Stream ended');
 }
 
 function logStatus(status) {
-  bufferedLog(`Stream status: ${JSON.stringify(status)}`);
+  console.log(`Stream status: ${JSON.stringify(status)}`);
 }
 
 function logShutdown() {
-  flushLogs();
-  stopIntervals();
   console.log('\nShutting down gracefully...');
 }
 
 function logStartupError(error) {
   console.error('Failed to start stream:', error);
 }
+
+function flushLogs() {}
 
 module.exports = {
   logMessage,

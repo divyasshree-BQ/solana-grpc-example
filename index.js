@@ -130,30 +130,7 @@ function listenToStream() {
 
   const request = createRequest();
   
-  // Create stream based on type
-  let stream;
-  switch (config.stream.type) {
-    case 'dex_trades':
-      stream = client.DexTrades(request, metadata);
-      break;
-    case 'dex_orders':
-      stream = client.DexOrders(request, metadata);
-      break;
-    case 'dex_pools':
-      stream = client.DexPools(request, metadata);
-      break;
-    case 'transactions':
-      stream = client.Transactions(request, metadata);
-      break;
-    case 'transfers':
-      stream = client.Transfers(request, metadata);
-      break;
-    case 'balances':
-      stream = client.Balances(request, metadata);
-      break;
-    default:
-      throw new Error(`Unsupported stream type: ${config.stream.type}`);
-  }
+  const stream = client.DexTrades(request, metadata);
   
   // Handle stream events: utils parse and print
   stream.on('data', (message) => {
