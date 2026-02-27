@@ -1,6 +1,6 @@
 server:
   address: "corecast.bitquery.io"
-  authorization: "ory_at_"
+  authorization: "ory_at_Q"
   insecure: false
 
 stream:
@@ -9,7 +9,7 @@ stream:
 # dextrades sample filter
 filters:
   tokens:
-    - "BhFhSiozXfoRCxq2DsCH55QaJ4kyY4ia3epfSPFEpump"
+    - "412zDygnwP9DzitnQVgRKUFFTDmrYScFch6P2k39pump"
   # programs:
   #     - "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4"
   #     - "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA"

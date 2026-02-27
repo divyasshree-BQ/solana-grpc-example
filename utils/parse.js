@@ -241,8 +241,9 @@ function formatDexTradeTableRow(message, receivedTimestamp, toBase58, filterToke
   const trade = message?.Trade;
   if (!trade?.Buy?.Account?.Address || !trade?.Sell?.Account?.Address) return null;
   const makeAddr = (buf) => (buf && toBase58(Buffer.isBuffer(buf) ? buf : Buffer.from(buf))) || '';
-  const buyer = makeAddr(trade.Buy.Account.Address);
-  const seller = makeAddr(trade.Sell.Account.Address);
+  // Use Token.Owner (wallet) when present, else fall back to Account.Address
+  const buyer = makeAddr(trade.Buy.Account.Token?.Owner ?? trade.Buy.Account.Address);
+  const seller = makeAddr(trade.Sell.Account.Token?.Owner ?? trade.Sell.Account.Address);
 
   const sigBuf = message?.Transaction?.Signature;
   const signature = sigBuf ? makeAddr(sigBuf) : '';
