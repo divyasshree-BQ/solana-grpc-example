@@ -7,16 +7,14 @@ const DEFAULT_DECIMALS = 9;
 // -----------------------------------------------------------------------------
 
 /**
- * Convert bytes to base58 or hex.
+ * Convert bytes to base58.
  * @param {Buffer|Uint8Array} buffer
- * @param {"base58"|"hex"} encoding
  * @returns {string}
  */
-function convertBytes(buffer, encoding = 'base58') {
+function convertBytes(buffer) {
   if (buffer == null || buffer.length === 0) return '';
   const buf = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
-  if (encoding === 'base58') return bs58.encode(buf);
-  return buf.toString('hex');
+  return bs58.encode(buf);
 }
 
 /**
@@ -112,13 +110,12 @@ function formatFieldWithDecimals(value, parent, key) {
 
 /**
  * Recursively format a protobuf message into log lines.
- * - Bytes → convertBytes (base58/hex or custom)
+ * - Bytes → convertBytes (base58) or custom converter
  * - If field name is amount-like and parent has decimals context → use decimal fn for value
  * @param {object} msg - protobuf message (plain object)
  * @param {object} options
  * @param {number} [options.indent=0]
- * @param {"base58"|"hex"} [options.encoding='base58']
- * @param {function} [options.convertBytes] - (buffer) => string; overrides encoding for bytes
+ * @param {function} [options.convertBytes] - (buffer) => string; overrides default base58 for bytes
  * @param {boolean} [options.useDecimals=true] - apply decimals to amount-like fields when context has decimals
  * @param {object} [options.parent=null] - parent object (used for decimals context; set internally)
  * @returns {string[]} log lines
@@ -126,7 +123,6 @@ function formatFieldWithDecimals(value, parent, key) {
 function parseMessage(msg, options = {}) {
   const {
     indent = 0,
-    encoding = 'base58',
     convertBytes: customConvertBytes,
     useDecimals = true,
     parent = null
@@ -134,7 +130,7 @@ function parseMessage(msg, options = {}) {
 
   const prefix = ' '.repeat(indent);
   const lines = [];
-  const convert = customConvertBytes || (b => convertBytes(b, encoding));
+  const convert = customConvertBytes || (b => convertBytes(b));
 
   if (msg === undefined || msg === null) {
     lines.push(prefix + String(msg));
@@ -203,7 +199,7 @@ function parseMessage(msg, options = {}) {
  * @param {object} message - raw gRPC stream message
  * @param {string} receivedTimestamp - ISO timestamp
  * @param {function} [toBase58] - optional (bytes) => base58 (e.g. cached)
- * @param {object} [opts] - passed to parseMessage (encoding, useDecimals, etc.)
+ * @param {object} [opts] - passed to parseMessage (useDecimals, etc.)
  * @returns {string[]} log lines
  */
 function formatStreamMessage(message, receivedTimestamp, toBase58, opts = {}) {
@@ -215,7 +211,6 @@ function formatStreamMessage(message, receivedTimestamp, toBase58, opts = {}) {
     '---'
   ];
   lines.push(...parseMessage(message, {
-    encoding: 'base58',
     convertBytes: convert,
     useDecimals: true,
     parent: null,
@@ -225,12 +220,23 @@ function formatStreamMessage(message, receivedTimestamp, toBase58, opts = {}) {
 }
 
 /** Min column widths; full addresses shown. Separator between columns prevents mashing. */
-const DEX_TRADE_COL_WIDTHS = { timestamp: 28, side: 6, buyer: 44, seller: 44, amount: 24, protocol: 20 };
+const DEX_TRADE_COL_WIDTHS = { timestamp: 28, side: 6, buyer: 44, seller: 44, amount: 48, protocol: 20 };
 const DEX_TRADE_COL_SEP = ' | ';
 
 /**
+ * Get symbol from Currency, or fallback.
+ * @param {object} currency - Currency with optional Symbol
+ * @param {string} fallback - e.g. 'tokens' or '???'
+ * @returns {string}
+ */
+function getSymbol(currency, fallback = '???') {
+  const s = currency?.Symbol;
+  return (s != null && String(s).trim() !== '') ? String(s).trim() : fallback;
+}
+
+/**
  * Format a single DEX trade as a table row object (timestamp, side, buyer, seller, amount, protocol).
- * Determines BUY/SELL based on which side holds the filtered token.
+ * Amount shows: "{tokenAmount} {tokenSymbol} {otherAmount} {otherSymbol}" e.g. "0.005 tokens 1999 WSOL".
  * @param {object} message - DexTradeStreamMessage with Trade (DexTradeEvent)
  * @param {string} receivedTimestamp - ISO timestamp
  * @param {function} toBase58 - (bytes) => base58 string
@@ -252,21 +258,31 @@ function formatDexTradeTableRow(message, receivedTimestamp, toBase58, filterToke
   const buyMint  = makeAddr(trade.Buy?.Currency?.MintAddress);
   const sellMint = makeAddr(trade.Sell?.Currency?.MintAddress);
 
+  const buyDecimals  = getDecimals(trade.Buy?.Currency);
+  const sellDecimals = getDecimals(trade.Sell?.Currency);
+  const buyAmountStr = trade.Buy?.Amount != null  ? toDecimalAmount(trade.Buy.Amount, buyDecimals)  : '0';
+  const sellAmountStr = trade.Sell?.Amount != null ? toDecimalAmount(trade.Sell.Amount, sellDecimals) : '0';
+  const buySymbol  = getSymbol(trade.Buy?.Currency, '???');
+  const sellSymbol = getSymbol(trade.Sell?.Currency, '???');
+
   // Determine side: if the filtered token appears on the Sell side, the user's token is being sold
-  let side, decimals, rawAmount;
+  let side, tokenAmount, tokenSymbol, otherAmount, otherSymbol;
   const tokenSet = new Set(filterTokens);
   if (tokenSet.size > 0 && tokenSet.has(sellMint)) {
-    side      = 'SELL';
-    decimals  = getDecimals(trade.Sell?.Currency);
-    rawAmount = trade.Sell?.Amount;
+    side         = 'SELL';
+    tokenAmount  = sellAmountStr;
+    tokenSymbol  = getSymbol(trade.Sell?.Currency, 'tokens');
+    otherAmount  = buyAmountStr;
+    otherSymbol  = buySymbol;
   } else {
-    // Buy side match, or no filter — default to BUY
-    side      = 'BUY';
-    decimals  = getDecimals(trade.Buy?.Currency);
-    rawAmount = trade.Buy?.Amount;
+    side         = 'BUY';
+    tokenAmount  = buyAmountStr;
+    tokenSymbol  = getSymbol(trade.Buy?.Currency, 'tokens');
+    otherAmount  = sellAmountStr;
+    otherSymbol  = sellSymbol;
   }
 
-  const amount   = rawAmount != null ? toDecimalAmount(rawAmount, decimals) : '0';
+  const amount   = `${tokenAmount} ${tokenSymbol} ${otherAmount} ${otherSymbol}`;
   const protocol = (trade.Dex && trade.Dex.ProtocolName != null) ? String(trade.Dex.ProtocolName) : '';
   return {
     timestamp: receivedTimestamp || '',

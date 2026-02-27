@@ -12,10 +12,12 @@ function logMessage(message, toBase58, config) {
     const filterTokens = config?.filters?.tokens || [];
     const row = parse.formatDexTradeTableRow(message, receivedTimestamp, toBase58, filterTokens);
     if (row) console.log(parse.formatDexTradeTableRowLine(row));
+    console.log("--------------------------------");
     return;
   }
   const lines = parse.formatStreamMessage(message, receivedTimestamp, toBase58);
   console.log(lines.join('\n'));
+  
 }
 
 function logStartup(config) {
