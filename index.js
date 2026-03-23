@@ -88,8 +88,13 @@ const client = new solanaCorecast.CoreCast(
     'grpc.enable_retries': 1,
     'grpc.max_connection_idle_ms': 30000,
     'grpc.max_connection_age_ms': 300000,
-    'grpc.max_connection_age_grace_ms': 5000
+    'grpc.max_connection_age_grace_ms': 5000,
+
+    'grpc-node.flow_control_window': 8 << 20,
+    'grpc.max_receive_message_length': 32 << 20,
+    'grpc.max_send_message_length': 32 << 20,
   }
+
 );
 
 // Create metadata with authorization
